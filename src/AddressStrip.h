@@ -16,7 +16,6 @@ typedef enum AddressStrip_Mode AddressStrip_Mode_et;
 typedef enum AddressStrip_Effect AddressStrip_Effect_et;
 
 typedef struct AddressStrip AddressStrip_st;
-typedef struct AddressStrip_Flags AddressStrip_Flags_st;
 
 enum AddressStrip_State{
 	ADDRESS_STRIP_STATE_OFF,
@@ -24,6 +23,7 @@ enum AddressStrip_State{
 };
 
 enum AddressStrip_Mode{
+	ADDRESS_STRIP_MODE_NONE,
 	ADDRESS_STRIP_MODE_COLOR,
 	ADDRESS_STRIP_MODE_EFFECT,
 	ADDRESS_STRIP_MODE_COLOR_MUSIC
@@ -34,13 +34,8 @@ enum AddressStrip_Effect{
 	ADDRESS_STRIP_EFFECT_RAINBOW,
 };
 
-struct AddressStrip_Flags{
-	uint32_t effectChange : 1;
-};
-
 struct AddressStrip{
 	WS2812B_st* ws2812b;
-	WS2812B_PixelColor_st tempBuffer[WS2812B_MAX_PIXELS];
 	
 	uint16_t numberLeds;
 	AddressStrip_State_et state;
@@ -55,8 +50,6 @@ struct AddressStrip{
 	
 	uint8_t colorMusic;
 	uint8_t colorMusicSpeed;
-	
-	AddressStrip_Flags flags;
 };
 
 void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b);
