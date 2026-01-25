@@ -3,6 +3,7 @@
 
 #include "WS2812B.h"
 #include "WS2812B_Utils.h"
+#include "FFT.h"
 
 #define ADDRESS_STRIP_DEFAULT_NUMDER_LEDS         60
 #define ADDRESS_STRIP_DEFAULT_STATE               ADDRESS_STRIP_STATE_ON
