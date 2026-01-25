@@ -10,6 +10,8 @@
 #define ADDRESS_STRIP_DEFAULT_BRIGHTNESS          100
 #define ADDRESS_STRIP_DEFAULT_HUE                 0
 #define ADDRESS_STRIP_DEFAULT_SATURATION          100
+#define ADDRESS_STRIP_DEFAULT_EFFECT              ADDRESS_STRIP_EFFECT_NONE
+#define ADDRESS_STRIP_DEFAULT_EFFECT_SPEED        25
 
 typedef enum AddressStrip_State AddressStrip_State_et;
 typedef enum AddressStrip_Mode AddressStrip_Mode_et;
@@ -38,14 +40,23 @@ struct AddressStrip{
 	WS2812B_st* ws2812b;
 	
 	uint16_t numberLeds;
+	uint16_t previousNumberLeds;
+	
 	AddressStrip_State_et state;
+	AddressStrip_State_et previousState;
+	
 	AddressStrip_Mode_et mode;
+	AddressStrip_Mode_et previousMode;
+	
 	uint8_t brightness;
+	uint8_t previousBrightness;
 	
 	uint16_t hue;
 	uint8_t saturation;
 	
 	AddressStrip_Effect_et effect;
+	AddressStrip_Effect_et previousEffect;
+	
 	uint8_t effectSpeed;
 	
 	uint8_t colorMusic;
@@ -64,5 +75,6 @@ void AddressStrip_SetHue(AddressStrip_st* strip, uint16_t hue);
 void AddressStrip_SetSaturation(AddressStrip_st* strip, uint8_t saturation);
 
 void AddressStrip_SetEffect(AddressStrip_st* strip, uint8_t effect);
+void AddressStrip_SetEffectSpeed(AddressStrip_st* strip, uint8_t effectSpeed);
 
 #endif

@@ -1,12 +1,19 @@
 #include "AddressStrip.h"
+#include <stdint.h>
 
-static void SetPixelHue(AddressStrip_st* strip, uint16_t hue,  uint16_t index);
-static void SetPixelSaturation(AddressStrip_st* strip, uint8_t saturation,  uint16_t index);
-static void SetPixelValue(AddressStrip_st* strip, uint8_t value,  uint16_t index);
+//static void SetPixelHue(AddressStrip_st* strip, uint16_t hue,  uint16_t index);
+//static void SetPixelSaturation(AddressStrip_st* strip, uint8_t saturation,  uint16_t index);
+//static void SetPixelValue(AddressStrip_st* strip, uint8_t value,  uint16_t index);
 
 static void RunColor(AddressStrip_st* strip);
 static void RunEffect(AddressStrip_st* strip);
-static void RunState(AddressStrip_st* strip);
+static void RunStateOff(AddressStrip_st* strip);
+
+static void AnimationTrain(AddressStrip_st* strip);
+
+static void PresetRainbow(AddressStrip_st* strip);
+
+static void EffectRainbow(AddressStrip_st* strip);
 
 void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b){
 	strip->ws2812b = ws2812b;
@@ -17,6 +24,11 @@ void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b){
 	strip->brightness = ADDRESS_STRIP_DEFAULT_BRIGHTNESS;
 	strip->hue = ADDRESS_STRIP_DEFAULT_HUE;
 	strip->saturation = ADDRESS_STRIP_DEFAULT_SATURATION;
+	strip->effect = ADDRESS_STRIP_DEFAULT_EFFECT;
+	strip->effectSpeed = ADDRESS_STRIP_DEFAULT_EFFECT_SPEED;
+	
+	strip->previousNumberLeds = strip->numberLeds;
+	strip->previousEffect = strip->effect;
 	
 	RunColor(strip);
 }
@@ -31,9 +43,7 @@ void AddressStrip_Run(AddressStrip_st* strip){
 		}		
 	}
 	else if(strip->state == ADDRESS_STRIP_STATE_OFF){
-		if(strip->mode == 0){
-			RunState(strip);
-		}		
+		RunStateOff(strip);	
 	}
 	WS2812B_Run(strip->ws2812b);
 }
@@ -69,9 +79,12 @@ void AddressStrip_SetSaturation(AddressStrip_st* strip, uint8_t saturation){
 
 
 
-
 void AddressStrip_SetEffect(AddressStrip_st* strip, uint8_t effect){
 	strip->effect = effect;
+}
+
+void AddressStrip_SetEffectSpeed(AddressStrip_st* strip, uint8_t effectSpeed){
+	strip->effectSpeed = effectSpeed;
 }
 
 
@@ -85,11 +98,55 @@ static void RunColor(AddressStrip_st* strip){
 }
 
 static void RunEffect(AddressStrip_st* strip){
-	
+	switch (strip->effect){
+		case ADDRESS_STRIP_EFFECT_NONE: break;
+		case ADDRESS_STRIP_EFFECT_RAINBOW: EffectRainbow(strip);
+	}
 }
 
-static void RunState(AddressStrip_st* strip){
+static void RunStateOff(AddressStrip_st* strip){
 	for(int i = 0; i < strip->numberLeds; i++){
 		WS2812B_SetColor(strip->ws2812b, 0, 0, 0, i);
 	}	
+}
+
+
+
+static void AnimationTrain(AddressStrip_st* strip){
+	uint8_t r, g, b;
+	uint8_t tr, tg, tb;
+	WS2812B_GetColor(strip->ws2812b, &tr, &tg, &tb, strip->numberLeds - 1);
+	for(uint16_t i = strip->numberLeds - 1; i > 0; i--){
+		WS2812B_GetColor(strip->ws2812b, &r, &g, &b, i - 1);
+		WS2812B_SetColor(strip->ws2812b, r, g, b, i);
+	}
+	WS2812B_SetColor(strip->ws2812b, tr, tg, tb, 0);
+}
+
+
+
+static void PresetRainbow(AddressStrip_st* strip){
+	for(int i = 0; i < strip->numberLeds; i++){
+		uint8_t r, g, b;
+		WS2812B_HSV2RGB(WS2812B_Interpolation(0, strip->numberLeds, 0, 360, i), (float)strip->saturation / 100, (float)strip->brightness / 100, &r, &g, &b);		
+		WS2812B_SetColor(strip->ws2812b, r, g, b, i);
+	}		
+}
+
+
+
+static void EffectRainbow(AddressStrip_st* strip){
+	if(strip->numberLeds != strip->previousNumberLeds || strip->effect != strip->previousEffect){
+		PresetRainbow(strip);
+		strip->previousNumberLeds = strip->numberLeds;
+		strip->previousEffect = strip->effect;
+	}
+	
+	static uint32_t tick = 0;
+	
+	if(strip->ws2812b->userFunctions.getTick() - tick > (UINT8_MAX - strip->effectSpeed)){
+		AnimationTrain(strip);
+		tick = strip->ws2812b->userFunctions.getTick();
+	}
+	
 }
