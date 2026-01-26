@@ -13,10 +13,15 @@
 #define ADDRESS_STRIP_DEFAULT_SATURATION          100
 #define ADDRESS_STRIP_DEFAULT_EFFECT              ADDRESS_STRIP_EFFECT_NONE
 #define ADDRESS_STRIP_DEFAULT_EFFECT_SPEED        25
+#define ADDRESS_STRIP_DEFAULT_COLOR_MUSIC         ADDRESS_STRIP_COLOR_MUSIC_NONE
+#define ADDRESS_STRIP_DEFAULT_COLOR_MUSIC_SPEED   25
+
+#define ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE   256
 
 typedef enum AddressStrip_State AddressStrip_State_et;
 typedef enum AddressStrip_Mode AddressStrip_Mode_et;
 typedef enum AddressStrip_Effect AddressStrip_Effect_et;
+typedef enum AddressStrip_ColorMusic AddressStrip_ColorMusic_et;
 
 typedef struct AddressStrip AddressStrip_st;
 
@@ -35,6 +40,11 @@ enum AddressStrip_Mode{
 enum AddressStrip_Effect{
 	ADDRESS_STRIP_EFFECT_NONE,
 	ADDRESS_STRIP_EFFECT_RAINBOW,
+};
+
+enum AddressStrip_ColorMusic{
+	ADDRESS_STRIP_COLOR_MUSIC_NONE,
+	ADDRESS_STRIP_COLOR_MUSIC_SPECTRE,
 };
 
 struct AddressStrip{
@@ -57,11 +67,14 @@ struct AddressStrip{
 	
 	AddressStrip_Effect_et effect;
 	AddressStrip_Effect_et previousEffect;
-	
 	uint8_t effectSpeed;
 	
-	uint8_t colorMusic;
+	AddressStrip_ColorMusic_et colorMusic;
+	AddressStrip_ColorMusic_et previousColorMusic;
 	uint8_t colorMusicSpeed;
+	
+	int16_t colorMusicSignal[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE];
+	uint8_t colorMusicSignalFlag;
 };
 
 void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b);
@@ -75,7 +88,13 @@ void AddressStrip_SetBrightness(AddressStrip_st* strip, uint8_t brightness);
 void AddressStrip_SetHue(AddressStrip_st* strip, uint16_t hue);
 void AddressStrip_SetSaturation(AddressStrip_st* strip, uint8_t saturation);
 
-void AddressStrip_SetEffect(AddressStrip_st* strip, uint8_t effect);
+void AddressStrip_SetEffect(AddressStrip_st* strip, AddressStrip_Effect_et effect);
 void AddressStrip_SetEffectSpeed(AddressStrip_st* strip, uint8_t effectSpeed);
+
+void AddressStrip_SetColorMusic(AddressStrip_st* strip, AddressStrip_ColorMusic_et colorMusic);
+void AddressStrip_SetColorMusicSpeed(AddressStrip_st* strip, uint8_t colorMusictSpeed);
+
+uint8_t AddressStrip_IsColorMusicReady(AddressStrip_st* strip);
+void AddressStrip_UpdateColorMusicSignal(AddressStrip_st* strip, int16_t* colorMusicSignal);
 
 #endif
