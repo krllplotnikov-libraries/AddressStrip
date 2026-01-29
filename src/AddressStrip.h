@@ -74,7 +74,8 @@ struct AddressStrip{
 	AddressStrip_ColorMusic_et previousColorMusic;
 	uint8_t colorMusicSpeed;
 	
-	int16_t colorMusicSignal[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE];
+	float colorMusicSignal[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE];
+	float colorMusicMagnitude[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE];
 	uint8_t colorMusicSignalFlag;
 };
 

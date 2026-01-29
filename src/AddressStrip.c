@@ -32,6 +32,8 @@ static void EffectRainbowLoop(AddressStrip_st* strip);
 static void ColorMusicSpectre(AddressStrip_st* strip);
 static void ColorMusicRainbowTrain(AddressStrip_st* strip);
 
+static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip);
+
 
 
 /*--------------------------------------------------------------------------------
@@ -125,7 +127,9 @@ uint8_t AddressStrip_IsColorMusicReady(AddressStrip_st* strip){
 
 void AddressStrip_UpdateColorMusicSignal(AddressStrip_st* strip, int16_t* colorMusicSignal){
 	if(strip->colorMusicSignalFlag){
-		memcpy(strip->colorMusicSignal, colorMusicSignal, 256 * sizeof(int16_t));
+		for (uint32_t i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE; i++) {
+			strip->colorMusicSignal[i] = colorMusicSignal[i];
+		}
 		strip->colorMusicSignalFlag = 0;
 	}
 }
@@ -273,18 +277,9 @@ static void ColorMusicRainbowTrain(AddressStrip_st* strip){
 	}
 	
 	if(!strip->colorMusicSignalFlag){
-		float rdat[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE] = {0};
-		float idat[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE] = {0};
-		float magnitude[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE] = {0};			
-		for (int i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE; i++) {
-			rdat[i] = strip->colorMusicSignal[i];
-		}
-		FFT(rdat, idat, ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE, FT_INVERSE);
-		for (int i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE; i++) {
-			magnitude[i] = sqrtf(rdat[i] * rdat[i] + idat[i] * idat[i]);
-		}		
-		  
-		if(magnitude[5] > 3){
+		ColorMusicCalculateMagnitudes(strip);
+		
+		if(strip->colorMusicMagnitude[5] > 3){
 			PresetHue(strip, 0, 5, hue);
 			PresetRaindrop(strip, 0, 5);
 			hue += 6;
@@ -294,4 +289,15 @@ static void ColorMusicRainbowTrain(AddressStrip_st* strip){
 		}
 		strip->colorMusicSignalFlag = 1;
 	}
+}
+
+
+
+static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip){
+	FFT_st fft = {0};
+	float idat[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE] = {0};
+			
+	FFT_Init(&fft, strip->colorMusicSignal, idat, ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE);
+	FFT_Calculate(&fft, FT_INVERSE);
+	FFT_Magnitude(&fft, strip->colorMusicMagnitude);
 }
