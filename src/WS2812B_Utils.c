@@ -33,6 +33,38 @@ void WS2812B_HSV2RGB(float h, float s, float v, uint8_t* r, uint8_t* g, uint8_t*
     *b = (bs + m) * 255;
 }
 
+void WS2812B_RGB2HSV(uint8_t r, uint8_t g, uint8_t b, float* h, float* s, float* v){
+    float rs = (float)r / 255;
+    float gs = (float)g / 255;
+    float bs = (float)b / 255;
+    
+    float cmax = fmaxf(fmaxf(rs, gs), bs);
+    float cmin = fminf(fminf(rs, gs), bs);
+    float d = cmax - cmin;
+    
+    if(d == 0){
+		*h = 0;
+	}
+	if(cmax == rs){
+		*h = 60 * fmod((gs - bs) / d, 6);
+	}
+	else if(cmax == gs){
+		*h = 60 * ((bs - rs) / d + 2);
+	}
+	else if(cmax == bs){
+		*h = 60 * ((rs - gs) / d + 4);
+	}
+	
+	if(cmax == 0){
+		*s = 0;
+	}
+	else{
+		*s = d / cmax;
+	}
+	
+	*v = cmax;
+}
+
 float WS2812B_Interpolation(float x1, float x2, float fx1, float fx2, float x){
-    return x1 + (x - x1) * ((fx2 - fx1) / (x2 - x1));
+    return fx1 + (x - x1) * ((fx2 - fx1) / (x2 - x1));
 }

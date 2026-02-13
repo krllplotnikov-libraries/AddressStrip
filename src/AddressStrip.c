@@ -20,6 +20,7 @@ static void RunStateOff(AddressStrip_st* strip);
 static void PresetRainbow(AddressStrip_st* strip, uint16_t start, uint16_t stop);
 static void PresetHue(AddressStrip_st* strip, uint16_t start, uint16_t stop, uint16_t hue);
 static void PresetRaindrop(AddressStrip_st* strip, uint16_t start, uint16_t stop);
+static void PresetGradient(AddressStrip_st* strip, uint16_t startLed, uint16_t stopLed, uint16_t startHue, uint16_t stopHue);
 
 //Animation
 static void AnimationTrain(AddressStrip_st* strip, uint16_t start, uint16_t stop);
@@ -51,13 +52,15 @@ void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b){
 	strip->effect = ADDRESS_STRIP_DEFAULT_EFFECT;
 	strip->effectSpeed = ADDRESS_STRIP_DEFAULT_EFFECT_SPEED;
 	strip->colorMusic = ADDRESS_STRIP_DEFAULT_COLOR_MUSIC;
-	strip->colorMusicSpeed = ADDRESS_STRIP_DEFAULT_COLOR_MUSIC_SPEED;	
+	strip->colorMusicSpeed = ADDRESS_STRIP_DEFAULT_COLOR_MUSIC_SPEED;
+		
 	strip->colorMusicSignalFlag = 1;
 	
-	strip->previousNumberLeds = strip->numberLeds;
-	strip->previousEffect = strip->effect;
+	strip->previousNumberLeds = 0;
+	strip->previousMode = ADDRESS_STRIP_MODE_NONE;
+	strip->previousEffect = ADDRESS_STRIP_EFFECT_NONE;
+	strip->previousColorMusic = ADDRESS_STRIP_COLOR_MUSIC_NONE;
 	
-	RunColor(strip);
 }
 
 void AddressStrip_Run(AddressStrip_st* strip){
@@ -81,7 +84,7 @@ void AddressStrip_Run(AddressStrip_st* strip){
 void AddressStrip_SetNumberLeds(AddressStrip_st* strip, uint16_t numberLeds){
 	strip->numberLeds = numberLeds;
 	for(int i = 0; i < WS2812B_MAX_PIXELS; i++){
-		WS2812B_SetColor(strip->ws2812b, 0, 0, 0, i);
+		WS2812B_SetColorHSV(strip->ws2812b, 0, 0, 0, i);
 	}	
 }
 
@@ -141,31 +144,29 @@ void AddressStrip_UpdateColorMusicSignal(AddressStrip_st* strip, int16_t* colorM
 --------------------------------------------------------------------------------*/
 //Run
 static void RunColor(AddressStrip_st* strip){
-	uint8_t r, g, b;
-	WS2812B_HSV2RGB((float)strip->hue, (float)strip->saturation / 100, (float)strip->brightness / 100, &r, &g, &b);
 	for(int i = 0; i < strip->numberLeds; i++){
-		WS2812B_SetColor(strip->ws2812b, r, g, b, i);
+		WS2812B_SetColorHSV(strip->ws2812b, (float)strip->hue, (float)strip->saturation / 100, (float)strip->brightness / 100, i);
 	}	
 }
 
 static void RunEffect(AddressStrip_st* strip){
 	switch (strip->effect){
 		case ADDRESS_STRIP_EFFECT_NONE: break;
-		case ADDRESS_STRIP_EFFECT_RAINBOW_LOOP: EffectRainbowLoop(strip);
+		case ADDRESS_STRIP_EFFECT_RAINBOW_LOOP: EffectRainbowLoop(strip); break;
 	}
 }
 
 static void RunColorMusic(AddressStrip_st* strip){
 	switch (strip->colorMusic){
 		case ADDRESS_STRIP_COLOR_MUSIC_NONE: break;
-		case ADDRESS_STRIP_COLOR_MUSIC_SPECTRE: ColorMusicSpectre(strip);
-		case ADDRESS_STRIP_COLOR_MUSIC_RAINBOW_TRAIN: ColorMusicRainbowTrain(strip);
+		case ADDRESS_STRIP_COLOR_MUSIC_SPECTRE: ColorMusicSpectre(strip); break;
+		case ADDRESS_STRIP_COLOR_MUSIC_RAINBOW_TRAIN: ColorMusicRainbowTrain(strip); break;
 	}	
 }
 
 static void RunStateOff(AddressStrip_st* strip){
 	for(int i = 0; i < strip->numberLeds; i++){
-		WS2812B_SetColor(strip->ws2812b, 0, 0, 0, i);
+		WS2812B_SetColorHSV(strip->ws2812b, 0, 0, 0, i);
 	}	
 }
 
@@ -173,21 +174,51 @@ static void RunStateOff(AddressStrip_st* strip){
 
 //Preset
 static void PresetRainbow(AddressStrip_st* strip, uint16_t start, uint16_t stop){
-	for(int i = start; i <= stop; i++){
-		WS2812B_SetColorHSV(strip->ws2812b, WS2812B_Interpolation(0, stop - start, 0, 360, i), (float)strip->saturation / 100, (float)strip->brightness / 100, i);
-	}		
+	if(stop > start){
+		for(int i = start; i <= stop; i++){
+			WS2812B_SetColorHSV(strip->ws2812b, WS2812B_Interpolation(0, stop - start, 0, 360, i), 1, (float)strip->brightness / 100, i);
+		}		
+	}
+	else{
+		
+	}
 }
 
 static void PresetHue(AddressStrip_st* strip, uint16_t start, uint16_t stop, uint16_t hue){
-	for(int i = start; i <= stop; i++){
-		WS2812B_SetColorHSV(strip->ws2812b, hue, (float)strip->saturation / 100, (float)strip->brightness / 100, i);
+	if(stop > start){
+		for(int i = start; i <= stop; i++){
+			WS2812B_SetColorHSV(strip->ws2812b, hue, 1, (float)strip->brightness / 100, i);
+		}
+	}
+	else{
+		
 	}		
 }
 
 static void PresetRaindrop(AddressStrip_st* strip, uint16_t start, uint16_t stop){
-	for(int i = start; i <= stop; i++){
-		WS2812B_SetValue(strip->ws2812b, WS2812B_Interpolation(0, stop - start, 0, (float)strip->brightness / 100, i - start + 1), i);
-	}		
+	//TODO Check this function
+	if(stop > start){
+		for(int i = start; i <= stop; i++){
+			float value = WS2812B_Interpolation(start, stop, 0, (float)strip->brightness / 100, i);
+			printf("value = %.2f/n", value);
+			//WS2812B_SetValue(strip->ws2812b, value, i);
+		}
+	}
+	else{
+		
+	}	
+}
+
+static void PresetGradient(AddressStrip_st* strip, uint16_t startLed, uint16_t stopLed, uint16_t startHue, uint16_t stopHue){
+	if(stopLed > startLed){
+		for(int led = startLed; led <= stopLed; led++){
+			float hue = WS2812B_Interpolation(startLed, stopLed, startHue, stopHue, led);
+			WS2812B_SetColorHSV(strip->ws2812b, hue, 1, (float)strip->brightness / 100, led);
+		}
+	}
+	else{
+		
+	}
 }
 
 
@@ -198,20 +229,20 @@ static void AnimationLoop(AddressStrip_st* strip, uint16_t start, uint16_t stop)
 	uint8_t tr, tg, tb;
 	
 	if(stop > start){
-		WS2812B_GetColor(strip->ws2812b, &tr, &tg, &tb, stop);
+		WS2812B_GetColorRGB(strip->ws2812b, &tr, &tg, &tb, stop);
 		for(uint16_t i = stop; i > start; i--){
-			WS2812B_GetColor(strip->ws2812b, &r, &g, &b, i - 1);
-			WS2812B_SetColor(strip->ws2812b, r, g, b, i);
+			WS2812B_GetColorRGB(strip->ws2812b, &r, &g, &b, i - 1);
+			WS2812B_SetColorRGB(strip->ws2812b, r, g, b, i);
 		}
-		WS2812B_SetColor(strip->ws2812b, tr, tg, tb, start);	
+		WS2812B_SetColorRGB(strip->ws2812b, tr, tg, tb, start);	
 	}
 	else{
-		WS2812B_GetColor(strip->ws2812b, &tr, &tg, &tb, stop);
+		WS2812B_GetColorRGB(strip->ws2812b, &tr, &tg, &tb, stop);
 		for(uint16_t i = stop; i < start; i++){
-			WS2812B_GetColor(strip->ws2812b, &r, &g, &b, i + 1);
-			WS2812B_SetColor(strip->ws2812b, r, g, b, i);
+			WS2812B_GetColorRGB(strip->ws2812b, &r, &g, &b, i + 1);
+			WS2812B_SetColorRGB(strip->ws2812b, r, g, b, i);
 		}
-		WS2812B_SetColor(strip->ws2812b, tr, tg, tb, start);			
+		WS2812B_SetColorRGB(strip->ws2812b, tr, tg, tb, start);			
 	}
 }
 
@@ -219,17 +250,17 @@ static void AnimationTrain(AddressStrip_st* strip, uint16_t start, uint16_t stop
 	uint8_t r, g, b;
 	if(stop > start){
 		for(uint16_t i = stop; i > start; i--){
-			WS2812B_GetColor(strip->ws2812b, &r, &g, &b, i - 1);
-			WS2812B_SetColor(strip->ws2812b, r, g, b, i);
+			WS2812B_GetColorRGB(strip->ws2812b, &r, &g, &b, i - 1);
+			WS2812B_SetColorRGB(strip->ws2812b, r, g, b, i);
 		}
-		WS2812B_SetColor(strip->ws2812b, 0, 0, 0, start);			
+		WS2812B_SetColorRGB(strip->ws2812b, 0, 0, 0, start);			
 	}
 	else{
 		for(uint16_t i = stop; i < start; i++){
-			WS2812B_GetColor(strip->ws2812b, &r, &g, &b, i + 1);
-			WS2812B_SetColor(strip->ws2812b, r, g, b, i);
+			WS2812B_GetColorRGB(strip->ws2812b, &r, &g, &b, i + 1);
+			WS2812B_SetColorRGB(strip->ws2812b, r, g, b, i);
 		}
-		WS2812B_SetColor(strip->ws2812b, 0, 0, 0, start);			
+		WS2812B_SetColorRGB(strip->ws2812b, 0, 0, 0, start);			
 	}
 
 }
@@ -257,7 +288,82 @@ static void EffectRainbowLoop(AddressStrip_st* strip){
 
 //ColorMusic
 static void ColorMusicSpectre(AddressStrip_st* strip){
+	static uint32_t tick = 0;
 	
+	uint16_t segment1Start = 0;
+	uint16_t segment1Stop  = strip->numberLeds / 6 - 1;
+	
+	uint16_t segment2Start = segment1Stop + 1;
+	uint16_t segment2Stop  = segment2Start + segment1Stop;
+
+	uint16_t segment3Start = segment2Stop + 1;
+	uint16_t segment3Stop  = segment3Start + segment1Stop;
+
+	uint16_t segment4Start = segment3Stop + 1;
+	uint16_t segment4Stop  = segment4Start + segment1Stop;
+
+	uint16_t segment5Start = segment4Stop + 1;
+	uint16_t segment5Stop  = segment5Start + segment1Stop;
+
+	uint16_t segment6Start = segment5Stop;
+	uint16_t segment6Stop  = strip->numberLeds - 1;
+	
+	if(strip->numberLeds != strip->previousNumberLeds || strip->colorMusic != strip->previousColorMusic){
+		PresetGradient(strip, segment1Start, segment1Stop, 0, 60);
+		PresetGradient(strip, segment2Start, segment2Stop, 120, 180);
+		PresetGradient(strip, segment3Start, segment3Stop, 240, 350);
+		PresetGradient(strip, segment4Start, segment4Stop, 350, 240);
+		PresetGradient(strip, segment5Start, segment5Stop, 180, 120);
+		PresetGradient(strip, segment6Start, segment6Stop, 60, 0);
+		
+		PresetRaindrop(strip, segment1Stop, segment1Start);
+		PresetRaindrop(strip, segment6Stop, segment6Start);
+		PresetRaindrop(strip, segment2Stop, segment2Start);
+		PresetRaindrop(strip, segment5Stop, segment5Start);
+		PresetRaindrop(strip, segment3Stop, segment3Start);
+		PresetRaindrop(strip, segment4Stop, segment4Start);	
+									
+		strip->previousNumberLeds = strip->numberLeds;
+		strip->previousColorMusic = strip->colorMusic;		
+	}	
+	
+	if(strip->ws2812b->userFunctions.getTick() - tick > strip->colorMusicSpeed){
+		AnimationTrain(strip, segment1Stop, segment1Start);
+		AnimationTrain(strip, segment2Start, segment2Stop);
+		AnimationTrain(strip, segment3Start, segment3Stop);
+		AnimationTrain(strip, segment4Stop, segment4Start);
+		AnimationTrain(strip, segment5Stop, segment5Start);
+		AnimationTrain(strip, segment6Start, segment6Stop);	
+			
+		tick = strip->ws2812b->userFunctions.getTick();
+	}
+	
+	if(!strip->colorMusicSignalFlag){
+		ColorMusicCalculateMagnitudes(strip);
+		
+		if(strip->colorMusicMagnitude[1] > 7){
+			PresetGradient(strip, segment1Start, segment1Stop, 0, 60);
+			PresetGradient(strip, segment6Start, segment6Stop, 60, 0);
+			
+			PresetRaindrop(strip, segment1Stop, segment1Start);
+			PresetRaindrop(strip, segment6Stop, segment6Start);
+		}
+		if(strip->colorMusicMagnitude[5] > 5){
+			PresetGradient(strip, segment2Start, segment2Stop, 120, 180);
+			PresetGradient(strip, segment5Start, segment5Stop, 180, 120);
+			
+			PresetRaindrop(strip, segment2Stop, segment2Start);
+			PresetRaindrop(strip, segment5Stop, segment5Start);
+		}
+		if(strip->colorMusicMagnitude[10] > 3){	
+			PresetGradient(strip, segment3Start, segment3Stop, 240, 350);
+			PresetGradient(strip, segment4Start, segment4Stop, 350, 240);
+			
+			PresetRaindrop(strip, segment3Stop, segment3Start);
+			PresetRaindrop(strip, segment4Stop, segment4Start);			
+		}
+		strip->colorMusicSignalFlag = 1;
+	}	
 }
 
 static void ColorMusicRainbowTrain(AddressStrip_st* strip){
@@ -279,9 +385,10 @@ static void ColorMusicRainbowTrain(AddressStrip_st* strip){
 	if(!strip->colorMusicSignalFlag){
 		ColorMusicCalculateMagnitudes(strip);
 		
-		if(strip->colorMusicMagnitude[5] > 3){
+		if(strip->colorMusicMagnitude[3] > 7){
 			PresetHue(strip, 0, 5, hue);
 			PresetRaindrop(strip, 0, 5);
+			AnimationTrain(strip, 0, strip->numberLeds);
 			hue += 6;
 			if(hue > 360){
 				hue = 0;
