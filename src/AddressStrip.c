@@ -180,7 +180,7 @@ static void PresetRainbow(AddressStrip_st* strip, uint16_t start, uint16_t stop)
 		}		
 	}
 	else{
-		
+//TODO		
 	}
 }
 
@@ -191,21 +191,23 @@ static void PresetHue(AddressStrip_st* strip, uint16_t start, uint16_t stop, uin
 		}
 	}
 	else{
-		
+//TODO		
 	}		
 }
 
 static void PresetRaindrop(AddressStrip_st* strip, uint16_t start, uint16_t stop){
-	//TODO Check this function
 	if(stop > start){
 		for(int i = start; i <= stop; i++){
-			float value = WS2812B_Interpolation(start, stop, 0, (float)strip->brightness / 100, i);
+			float value = WS2812B_Interpolation(start, stop, 0.01, (float)strip->brightness / 100, i);
 			printf("value = %.2f/n", value);
-			//WS2812B_SetValue(strip->ws2812b, value, i);
+			WS2812B_SetValue(strip->ws2812b, value, i);
 		}
 	}
 	else{
-		
+		for(int i = stop; i <= start; i++){
+			float value = WS2812B_Interpolation(start, stop, 0.01, (float)strip->brightness / 100, i);
+			WS2812B_SetValue(strip->ws2812b, value, i);
+		}	
 	}	
 }
 
@@ -217,7 +219,7 @@ static void PresetGradient(AddressStrip_st* strip, uint16_t startLed, uint16_t s
 		}
 	}
 	else{
-		
+//TODO		
 	}
 }
 
@@ -305,7 +307,7 @@ static void ColorMusicSpectre(AddressStrip_st* strip){
 	uint16_t segment5Start = segment4Stop + 1;
 	uint16_t segment5Stop  = segment5Start + segment1Stop;
 
-	uint16_t segment6Start = segment5Stop;
+	uint16_t segment6Start = segment5Stop + 1;
 	uint16_t segment6Stop  = strip->numberLeds - 1;
 	
 	if(strip->numberLeds != strip->previousNumberLeds || strip->colorMusic != strip->previousColorMusic){
@@ -317,10 +319,10 @@ static void ColorMusicSpectre(AddressStrip_st* strip){
 		PresetGradient(strip, segment6Start, segment6Stop, 60, 0);
 		
 		PresetRaindrop(strip, segment1Stop, segment1Start);
-		PresetRaindrop(strip, segment6Stop, segment6Start);
-		PresetRaindrop(strip, segment2Stop, segment2Start);
+		PresetRaindrop(strip, segment6Start, segment6Stop);
+		PresetRaindrop(strip, segment2Start, segment2Stop);
 		PresetRaindrop(strip, segment5Stop, segment5Start);
-		PresetRaindrop(strip, segment3Stop, segment3Start);
+		PresetRaindrop(strip, segment3Start, segment3Stop);
 		PresetRaindrop(strip, segment4Stop, segment4Start);	
 									
 		strip->previousNumberLeds = strip->numberLeds;
@@ -346,20 +348,20 @@ static void ColorMusicSpectre(AddressStrip_st* strip){
 			PresetGradient(strip, segment6Start, segment6Stop, 60, 0);
 			
 			PresetRaindrop(strip, segment1Stop, segment1Start);
-			PresetRaindrop(strip, segment6Stop, segment6Start);
+			PresetRaindrop(strip, segment6Start, segment6Stop);
 		}
 		if(strip->colorMusicMagnitude[5] > 5){
 			PresetGradient(strip, segment2Start, segment2Stop, 120, 180);
 			PresetGradient(strip, segment5Start, segment5Stop, 180, 120);
 			
-			PresetRaindrop(strip, segment2Stop, segment2Start);
+			PresetRaindrop(strip, segment2Start, segment2Stop);
 			PresetRaindrop(strip, segment5Stop, segment5Start);
 		}
 		if(strip->colorMusicMagnitude[10] > 3){	
 			PresetGradient(strip, segment3Start, segment3Stop, 240, 350);
 			PresetGradient(strip, segment4Start, segment4Stop, 350, 240);
 			
-			PresetRaindrop(strip, segment3Stop, segment3Start);
+			PresetRaindrop(strip, segment3Start, segment3Stop);
 			PresetRaindrop(strip, segment4Stop, segment4Start);			
 		}
 		strip->colorMusicSignalFlag = 1;
