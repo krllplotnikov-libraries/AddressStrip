@@ -199,7 +199,6 @@ static void PresetRaindrop(AddressStrip_st* strip, uint16_t start, uint16_t stop
 	if(stop > start){
 		for(int i = start; i <= stop; i++){
 			float value = WS2812B_Interpolation(start, stop, 0.01, (float)strip->brightness / 100, i);
-			printf("value = %.2f/n", value);
 			WS2812B_SetValue(strip->ws2812b, value, i);
 		}
 	}
