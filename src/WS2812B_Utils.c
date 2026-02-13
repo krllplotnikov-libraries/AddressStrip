@@ -45,7 +45,7 @@ void WS2812B_RGB2HSV(uint8_t r, uint8_t g, uint8_t b, float* h, float* s, float*
     if(d == 0){
 		*h = 0;
 	}
-	if(cmax == rs){
+	else if(cmax == rs){
 		*h = 60 * fmod((gs - bs) / d, 6);
 	}
 	else if(cmax == gs){
