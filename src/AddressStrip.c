@@ -3,10 +3,6 @@
 #include <stdint.h>
 #include <string.h>
 
-//static void SetPixelHue(AddressStrip_st* strip, uint16_t hue,  uint16_t index);
-//static void SetPixelSaturation(AddressStrip_st* strip, uint8_t saturation,  uint16_t index);
-//static void SetPixelValue(AddressStrip_st* strip, uint8_t value,  uint16_t index);
-
 /*--------------------------------------------------------------------------------
                         Local Function Prototype
 --------------------------------------------------------------------------------*/
@@ -89,10 +85,12 @@ void AddressStrip_SetNumberLeds(AddressStrip_st* strip, uint16_t numberLeds){
 }
 
 void AddressStrip_SetState(AddressStrip_st* strip, AddressStrip_State_et state){
+	strip->previousState = strip->state;
 	strip->state = state;
 }
 
 void AddressStrip_SetMode(AddressStrip_st* strip, uint8_t mode){
+	strip->previousMode = strip->mode;
 	strip->mode = mode;
 }
 
@@ -272,10 +270,12 @@ static void AnimationTrain(AddressStrip_st* strip, uint16_t start, uint16_t stop
 static void EffectRainbowLoop(AddressStrip_st* strip){
 	static uint32_t tick = 0;
 	
-	if(strip->numberLeds != strip->previousNumberLeds || strip->effect != strip->previousEffect){
+	if(strip->numberLeds != strip->previousNumberLeds || strip->effect != strip->previousEffect || strip->mode != strip->previousMode || strip->previousState != strip->state){
 		PresetRainbow(strip, 0, strip->numberLeds - 1);
 		strip->previousNumberLeds = strip->numberLeds;
 		strip->previousEffect = strip->effect;
+		strip->previousMode = strip->mode;
+		strip->previousState = strip->state;
 	}
 	
 	if(strip->ws2812b->userFunctions.getTick() - tick > strip->effectSpeed){
@@ -401,7 +401,7 @@ static void ColorMusicRainbowTrain(AddressStrip_st* strip){
 
 
 
-static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip){
+static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip){	
 	FFT_st fft = {0};
 	float idat[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE] = {0};
 			
