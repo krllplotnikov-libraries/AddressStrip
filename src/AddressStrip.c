@@ -29,7 +29,8 @@ static void EffectRainbowLoop(AddressStrip_st* strip);
 static void ColorMusicSpectre(AddressStrip_st* strip);
 static void ColorMusicRainbowTrain(AddressStrip_st* strip);
 
-static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip);
+static void ColorMusicProcessFrame(AddressStrip_st* strip);
+static uint8_t ColorMusicBeat(AddressStrip_st* strip, uint8_t firstBand, uint8_t lastBand);
 
 
 
@@ -50,7 +51,11 @@ void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b){
 	strip->colorMusic = ADDRESS_STRIP_DEFAULT_COLOR_MUSIC;
 	strip->colorMusicSpeed = ADDRESS_STRIP_DEFAULT_COLOR_MUSIC_SPEED;
 		
-	strip->colorMusicSignalFlag = 1;
+	strip->colorMusicNewFrame = 0;
+	for(uint8_t i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_BANDS; i++){
+		strip->colorMusicInput[i] = 0;
+		strip->colorMusicBand[i] = (AddressStrip_ColorMusicBand_st){0};
+	}
 	
 	strip->previousNumberLeds = 0;
 	strip->previousMode = ADDRESS_STRIP_MODE_NONE;
@@ -60,6 +65,10 @@ void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b){
 }
 
 void AddressStrip_Run(AddressStrip_st* strip){
+	if(strip->colorMusicNewFrame){
+		ColorMusicProcessFrame(strip);
+	}
+	
 	if(strip->state == ADDRESS_STRIP_STATE_ON){
 		if(strip->mode == ADDRESS_STRIP_MODE_COLOR){
 			RunColor(strip);
@@ -122,17 +131,14 @@ void AddressStrip_SetColorMusicSpeed(AddressStrip_st* strip, uint8_t colorMusicS
 	strip->colorMusicSpeed = colorMusicSpeed;
 }
 
-uint8_t AddressStrip_IsColorMusicReady(AddressStrip_st* strip){
-	return strip->colorMusicSignalFlag;
-}
-
-void AddressStrip_UpdateColorMusicSignal(AddressStrip_st* strip, int16_t* colorMusicSignal){
-	if(strip->colorMusicSignalFlag){
-		for (uint32_t i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE; i++) {
-			strip->colorMusicSignal[i] = colorMusicSignal[i];
-		}
-		strip->colorMusicSignalFlag = 0;
+void AddressStrip_UpdateColorMusicBands(AddressStrip_st* strip, const float* bands){
+	for(uint8_t i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_BANDS; i++){
+		float v = bands[i];
+		if(!(v > 0)) v = 0;   // also catches NaN
+		if(v > 1) v = 1;
+		strip->colorMusicInput[i] = v;
 	}
+	strip->colorMusicNewFrame = 1;
 }
 
 
@@ -339,32 +345,28 @@ static void ColorMusicSpectre(AddressStrip_st* strip){
 		tick = strip->ws2812b->userFunctions.getTick();
 	}
 	
-	if(!strip->colorMusicSignalFlag){
-		ColorMusicCalculateMagnitudes(strip);
-		
-		if(strip->colorMusicMagnitude[1] > 7){
-			PresetGradient(strip, segment1Start, segment1Stop, 0, 60);
-			PresetGradient(strip, segment6Start, segment6Stop, 60, 0);
-			
-			PresetRaindrop(strip, segment1Stop, segment1Start);
-			PresetRaindrop(strip, segment6Start, segment6Stop);
-		}
-		if(strip->colorMusicMagnitude[5] > 5){
-			PresetGradient(strip, segment2Start, segment2Stop, 120, 180);
-			PresetGradient(strip, segment5Start, segment5Stop, 180, 120);
-			
-			PresetRaindrop(strip, segment2Start, segment2Stop);
-			PresetRaindrop(strip, segment5Stop, segment5Start);
-		}
-		if(strip->colorMusicMagnitude[10] > 3){	
-			PresetGradient(strip, segment3Start, segment3Stop, 240, 350);
-			PresetGradient(strip, segment4Start, segment4Stop, 350, 240);
-			
-			PresetRaindrop(strip, segment3Start, segment3Stop);
-			PresetRaindrop(strip, segment4Stop, segment4Start);			
-		}
-		strip->colorMusicSignalFlag = 1;
-	}	
+	//Low: bands 0-1 (40-160 Hz), mid: bands 2-4 (160-1280 Hz), high: bands 5-7 (1280-8000 Hz)
+	if(ColorMusicBeat(strip, 0, 1)){
+		PresetGradient(strip, segment1Start, segment1Stop, 0, 60);
+		PresetGradient(strip, segment6Start, segment6Stop, 60, 0);
+
+		PresetRaindrop(strip, segment1Stop, segment1Start);
+		PresetRaindrop(strip, segment6Start, segment6Stop);
+	}
+	if(ColorMusicBeat(strip, 2, 4)){
+		PresetGradient(strip, segment2Start, segment2Stop, 120, 180);
+		PresetGradient(strip, segment5Start, segment5Stop, 180, 120);
+
+		PresetRaindrop(strip, segment2Start, segment2Stop);
+		PresetRaindrop(strip, segment5Stop, segment5Start);
+	}
+	if(ColorMusicBeat(strip, 5, 7)){
+		PresetGradient(strip, segment3Start, segment3Stop, 240, 350);
+		PresetGradient(strip, segment4Start, segment4Stop, 350, 240);
+
+		PresetRaindrop(strip, segment3Start, segment3Stop);
+		PresetRaindrop(strip, segment4Stop, segment4Start);
+	}
 }
 
 static void ColorMusicRainbowTrain(AddressStrip_st* strip){
@@ -383,29 +385,74 @@ static void ColorMusicRainbowTrain(AddressStrip_st* strip){
 		tick = strip->ws2812b->userFunctions.getTick();
 	}
 	
-	if(!strip->colorMusicSignalFlag){
-		ColorMusicCalculateMagnitudes(strip);
-		
-		if(strip->colorMusicMagnitude[3] > 7){
-			PresetHue(strip, 0, 5, hue);
-			PresetRaindrop(strip, 0, 5);
-			AnimationTrain(strip, 0, strip->numberLeds);
-			hue += 6;
-			if(hue > 360){
-				hue = 0;
-			}
+	//Bass beat: bands 0-1 (40-160 Hz)
+	if(ColorMusicBeat(strip, 0, 1)){
+		PresetHue(strip, 0, 5, hue);
+		PresetRaindrop(strip, 0, 5);
+		AnimationTrain(strip, 0, strip->numberLeds);
+		hue += 6;
+		if(hue > 360){
+			hue = 0;
 		}
-		strip->colorMusicSignalFlag = 1;
 	}
 }
 
 
 
-static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip){	
-	FFT_st fft = {0};
-	float idat[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE] = {0};
-			
-	FFT_Init(&fft, strip->colorMusicSignal, idat, ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE);
-	FFT_Calculate(&fft, FT_INVERSE);
-	FFT_Magnitude(&fft, strip->colorMusicMagnitude);
+static void ColorMusicProcessFrame(AddressStrip_st* strip){
+	strip->colorMusicNewFrame = 0;
+	
+	for(uint8_t i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_BANDS; i++){
+		AddressStrip_ColorMusicBand_st* band = &strip->colorMusicBand[i];
+		float v = strip->colorMusicInput[i];
+		
+		band->value = v;
+		
+		if(v > band->envelope){
+			band->envelope += (v - band->envelope) * ADDRESS_STRIP_COLOR_MUSIC_ATTACK;
+		}
+		else{
+			band->envelope += (v - band->envelope) * ADDRESS_STRIP_COLOR_MUSIC_RELEASE;
+		}
+		
+		//Beats are detected on the envelope: fast attack keeps the onset, single-frame noise spikes are damped
+		float x = band->envelope;
+		
+		float excess = ADDRESS_STRIP_COLOR_MUSIC_BEAT_K * band->deviation;
+		if(excess < ADDRESS_STRIP_COLOR_MUSIC_BEAT_DELTA){
+			excess = ADDRESS_STRIP_COLOR_MUSIC_BEAT_DELTA;
+		}
+		band->peak -= ADDRESS_STRIP_COLOR_MUSIC_PEAK_DECAY;
+		if(x > band->peak) band->peak = x;
+		float maxExcess = (band->peak - band->average) * ADDRESS_STRIP_COLOR_MUSIC_BEAT_PEAK_RATIO;
+		if(excess > maxExcess){
+			excess = maxExcess;   // keep the threshold below recent peaks, otherwise frequent beats are never detected
+		}
+		
+		if(!band->above){
+			if(x > band->average + excess && x > ADDRESS_STRIP_COLOR_MUSIC_BEAT_MIN){
+				band->above = 1;
+				band->beat = 1;   // stays set until an effect consumes it via ColorMusicBeat()
+			}
+		}
+		else if(x < band->average + excess * ADDRESS_STRIP_COLOR_MUSIC_BEAT_HYSTERESIS){
+			band->above = 0;
+		}
+		
+		float d = x - band->average;
+		band->average += d * ADDRESS_STRIP_COLOR_MUSIC_AVERAGE;
+		band->deviation += ((d < 0 ? -d : d) - band->deviation) * ADDRESS_STRIP_COLOR_MUSIC_AVERAGE;
+	}
+}
+
+//Returns 1 if any band in [firstBand, lastBand] has an unconsumed beat; the beat flags are cleared.
+static uint8_t ColorMusicBeat(AddressStrip_st* strip, uint8_t firstBand, uint8_t lastBand){
+	uint8_t beat = 0;
+	for(uint8_t i = firstBand; i <= lastBand && i < ADDRESS_STRIP_COLOR_MUSIC_BANDS; i++){
+		if(strip->colorMusicBand[i].beat){
+			beat = 1;
+			strip->colorMusicBand[i].beat = 0;
+		}
+	}
+	return beat;
 }
