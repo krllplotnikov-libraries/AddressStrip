@@ -3,7 +3,6 @@
 
 #include "WS2812B.h"
 #include "WS2812B_Utils.h"
-#include "FFT.h"
 
 #define ADDRESS_STRIP_DEFAULT_NUMDER_LEDS         60
 #define ADDRESS_STRIP_DEFAULT_STATE               ADDRESS_STRIP_STATE_ON
@@ -73,10 +72,6 @@ struct AddressStrip{
 	AddressStrip_ColorMusic_et colorMusic;
 	AddressStrip_ColorMusic_et previousColorMusic;
 	uint8_t colorMusicSpeed;
-	
-	float colorMusicSignal[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE];
-	float colorMusicMagnitude[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE];
-	uint8_t colorMusicSignalFlag;
 };
 
 void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b);
@@ -95,8 +90,5 @@ void AddressStrip_SetEffectSpeed(AddressStrip_st* strip, uint8_t effectSpeed);
 
 void AddressStrip_SetColorMusic(AddressStrip_st* strip, AddressStrip_ColorMusic_et colorMusic);
 void AddressStrip_SetColorMusicSpeed(AddressStrip_st* strip, uint8_t colorMusictSpeed);
-
-uint8_t AddressStrip_IsColorMusicReady(AddressStrip_st* strip);
-void AddressStrip_UpdateColorMusicSignal(AddressStrip_st* strip, int16_t* colorMusicSignal);
 
 #endif

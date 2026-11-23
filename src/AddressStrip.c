@@ -29,8 +29,6 @@ static void EffectRainbowLoop(AddressStrip_st* strip);
 static void ColorMusicSpectre(AddressStrip_st* strip);
 static void ColorMusicRainbowTrain(AddressStrip_st* strip);
 
-static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip);
-
 
 
 /*--------------------------------------------------------------------------------
@@ -49,8 +47,6 @@ void AddressStrip_Init(AddressStrip_st* strip, WS2812B_st* ws2812b){
 	strip->effectSpeed = ADDRESS_STRIP_DEFAULT_EFFECT_SPEED;
 	strip->colorMusic = ADDRESS_STRIP_DEFAULT_COLOR_MUSIC;
 	strip->colorMusicSpeed = ADDRESS_STRIP_DEFAULT_COLOR_MUSIC_SPEED;
-		
-	strip->colorMusicSignalFlag = 1;
 	
 	strip->previousNumberLeds = 0;
 	strip->previousMode = ADDRESS_STRIP_MODE_NONE;
@@ -122,18 +118,6 @@ void AddressStrip_SetColorMusicSpeed(AddressStrip_st* strip, uint8_t colorMusicS
 	strip->colorMusicSpeed = colorMusicSpeed;
 }
 
-uint8_t AddressStrip_IsColorMusicReady(AddressStrip_st* strip){
-	return strip->colorMusicSignalFlag;
-}
-
-void AddressStrip_UpdateColorMusicSignal(AddressStrip_st* strip, int16_t* colorMusicSignal){
-	if(strip->colorMusicSignalFlag){
-		for (uint32_t i = 0; i < ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE; i++) {
-			strip->colorMusicSignal[i] = colorMusicSignal[i];
-		}
-		strip->colorMusicSignalFlag = 0;
-	}
-}
 
 
 
@@ -339,6 +323,7 @@ static void ColorMusicSpectre(AddressStrip_st* strip){
 		tick = strip->ws2812b->userFunctions.getTick();
 	}
 	
+/*	
 	if(!strip->colorMusicSignalFlag){
 		ColorMusicCalculateMagnitudes(strip);
 		
@@ -365,6 +350,7 @@ static void ColorMusicSpectre(AddressStrip_st* strip){
 		}
 		strip->colorMusicSignalFlag = 1;
 	}	
+*/
 }
 
 static void ColorMusicRainbowTrain(AddressStrip_st* strip){
@@ -383,6 +369,7 @@ static void ColorMusicRainbowTrain(AddressStrip_st* strip){
 		tick = strip->ws2812b->userFunctions.getTick();
 	}
 	
+/*	
 	if(!strip->colorMusicSignalFlag){
 		ColorMusicCalculateMagnitudes(strip);
 		
@@ -397,15 +384,5 @@ static void ColorMusicRainbowTrain(AddressStrip_st* strip){
 		}
 		strip->colorMusicSignalFlag = 1;
 	}
-}
-
-
-
-static void ColorMusicCalculateMagnitudes(AddressStrip_st* strip){	
-	FFT_st fft = {0};
-	float idat[ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE] = {0};
-			
-	FFT_Init(&fft, strip->colorMusicSignal, idat, ADDRESS_STRIP_COLOR_MUSIC_SIGNAL_BUFFER_SIZE);
-	FFT_Calculate(&fft, FT_INVERSE);
-	FFT_Magnitude(&fft, strip->colorMusicMagnitude);
+*/
 }
